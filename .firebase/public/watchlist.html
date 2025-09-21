@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Watchlist</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo"><i class="fa-solid fa-film"></i> FilmFile</a>
+            <div class="nav-links">
+                <a href="index.html">Search</a>
+                <a href="watchlist.html" class="active">Watchlist</a>
+                <a href="watched.html">Watched</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="list-page-container">
+            <h2><i class="fa-solid fa-list-check"></i> Movies to Watch</h2>
+            <div id="movie-watchlist-container" class="list-container">
+                </div>
+            <hr>
+            <h2><i class="fa-solid fa-tv"></i> TV Shows to Watch</h2>
+            <div id="tv-watchlist-container" class="list-container">
+                </div>
+        </div>
+    </main>
+    
+    <script src="watchlist.js"></script>
+</body>
+</html>

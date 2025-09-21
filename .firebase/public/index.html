@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Movies & TV</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <a href="index.html" class="logo"><i class="fa-solid fa-film"></i> FilmFile</a>
+            <div class="nav-links">
+                <a href="index.html" class="active">Search</a>
+                <a href="watchlist.html">Watchlist</a>
+                <a href="watched.html">Watched</a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <div class="search-container">
+            <form id="search-form">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="search-input" placeholder="Search for a movie or TV show..." autocomplete="off">
+                <button type="submit">Search</button>
+            </form>
+        </div>
+
+        <div class="filter-container">
+            <button class="filter-btn active" data-filter="movie">Movies</button>
+            <button class="filter-btn" data-filter="tv">TV Shows</button>
+        </div>
+
+        <div id="results-container" class="results-container">
+            <div class="placeholder">
+                <i class="fa-solid fa-clapperboard"></i>
+                <p>Start exploring titles to add to your watchlist!</p>
+            </div>
+        </div>
+    </main>
+
+    <script src="app.js"></script>
+</body>
+</html>

@@ -42,28 +42,79 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const fetchAndDisplay = async (items, container) => {
             for (const item of items) {
-                const url = `${apiBaseUrl}/${item.type}/${item.id}?api_key=${apiKey}`;
-                const response = await fetch(url);
-                const details = await response.json();
-                
-                const itemElement = document.createElement('div');
-                itemElement.classList.add('item-card');
-                const title = details.title || details.name;
-                const year = new Date(details.release_date || details.first_air_date).getFullYear();
+                try {
+                    const url = `${apiBaseUrl}/${item.type}/${item.id}?api_key=${apiKey}`;
+                    const response = await fetch(url);
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    
+                    const details = await response.json();
+                    
+                    // Check if we got valid data
+                    if (!details.id) {
+                        throw new Error('Invalid data received');
+                    }
+                    
+                    const itemElement = document.createElement('div');
+                    itemElement.classList.add('item-card');
+                    const title = details.title || details.name || 'Unknown Title';
+                    const releaseDate = details.release_date || details.first_air_date;
+                    const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
+                    const formattedDate = releaseDate ? new Date(releaseDate).toLocaleDateString() : 'N/A';
+                    const userScore = details.vote_average ? Math.round(details.vote_average * 10) : 'N/A';
+                    const runtime = details.runtime || details.episode_run_time?.[0] || 'N/A';
+                    const genres = details.genres ? details.genres.map(genre => genre.name).join(', ') : 'N/A';
+                    const posterUrl = details.poster_path ? `https://image.tmdb.org/t/p/w200${details.poster_path}` : 'https://via.placeholder.com/200x300/333333/ffffff?text=No+Image';
 
-                itemElement.innerHTML = `
-                    <img src="https://image.tmdb.org/t/p/w200${details.poster_path}" alt="${title} Poster">
-                    <div class="item-details">
-                        <div class="item-header">
-                            <h3>${title} (${year})</h3>
-                            <div class="action-buttons">
-                                <button title="Move back to Watchlist" class="action-btn move-to-watchlist-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-arrow-rotate-left"></i></button>
-                                <button title="Remove" class="action-btn remove-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-trash"></i></button>
+                    itemElement.innerHTML = `
+                        <img src="${posterUrl}" alt="${title} Poster" onerror="this.src='https://via.placeholder.com/200x300/333333/ffffff?text=No+Image'">
+                        <div class="item-details">
+                            <div class="item-header">
+                                <h3>${title} (${year})</h3>
+                                <div class="action-buttons">
+                                    <button title="Mark as Watched" class="action-btn mark-watched-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-check"></i></button>
+                                    <button title="Remove" class="action-btn remove-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-trash"></i></button>
+                                </div>
                             </div>
-                        </div>
-                        <p class="plot">${details.overview}</p>
-                    </div>`;
-                container.appendChild(itemElement);
+                            <div class="item-meta">
+                                <span><i class="fa-solid fa-calendar"></i> ${formattedDate}</span>
+                                <span><i class="fa-solid fa-star"></i> ${userScore}%</span>
+                                <span><i class="fa-solid fa-clock"></i> ${runtime}${runtime !== 'N/A' ? 'm' : ''}</span>
+                            </div>
+                            <p class="genres">${genres}</p>
+                            <p class="plot">${details.overview || 'No overview available.'}</p>
+                        </div>`;
+
+                    // Make cards clickable
+                    itemElement.addEventListener('click', (e) => {
+                        if (!e.target.closest('.action-buttons')) {
+                            window.location.href = `detail.html?type=${item.type}&id=${item.id}`;
+                        }
+                    });
+
+                    container.appendChild(itemElement);
+                } catch (error) {
+                    console.error(`Failed to fetch details for ${item.type} ${item.id}:`, error);
+                    
+                    // Create a fallback card for items that fail to load
+                    const itemElement = document.createElement('div');
+                    itemElement.classList.add('item-card');
+                    itemElement.innerHTML = `
+                        <img src="https://via.placeholder.com/200x300/333333/ffffff?text=Error" alt="Error loading poster">
+                        <div class="item-details">
+                            <div class="item-header">
+                                <h3>Error Loading Item</h3>
+                                <div class="action-buttons">
+                                    <button title="Mark as Watched" class="action-btn mark-watched-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-check"></i></button>
+                                    <button title="Remove" class="action-btn remove-btn" data-id="${item.id}" data-type="${item.type}"><i class="fa-solid fa-trash"></i></button>
+                                </div>
+                            </div>
+                            <p class="plot">Unable to load details for this item. It may have been removed from TMDB.</p>
+                        </div>`;
+                    container.appendChild(itemElement);
+                }
             }
         };
 

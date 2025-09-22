@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Test</title>
+</head>
+<body>
+    <h1>TMDB API Test</h1>
+    <button onclick="testAPI()">Test API Connection</button>
+    <div id="result"></div>
+
+    <script>
+        async function testAPI() {
+            const apiKey = '06251a03ea2bdbb4cf38b681d8263a92';
+            const url = `https://api.themoviedb.org/3/movie/550?api_key=${apiKey}`;
+            
+            try {
+                const response = await fetch(url);
+                const data = await response.json();
+                
+                if (data.title) {
+                    document.getElementById('result').innerHTML = `
+                        <p style="color: green;">✅ API is working!</p>
+                        <p>Movie: ${data.title}</p>
+                        <p>Response: ${JSON.stringify(data, null, 2)}</p>
+                    `;
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <p style="color: red;">❌ API Error: ${data.status_message}</p>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <p style="color: red;">❌ Network Error: ${error.message}</p>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

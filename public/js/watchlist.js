@@ -163,8 +163,13 @@ function createItemCard(item, type) {
     const posterUrl = item.poster_path 
         ? `https://image.tmdb.org/t/p/w200${item.poster_path}`
         : 'https://via.placeholder.com/200x300/333333/ffffff?text=No+Image';
-    const synopsis = item.overview || "No synopsis available.";
+    const userScore = item.vote_average ? Math.round(item.vote_average * 10) : 'N/A';
+    const runtime = item.runtime || item.episode_run_time?.[0] || 'N/A';
+    const genres = item.genres || 'N/A';
     const formattedDate = releaseDate ? new Date(releaseDate).toLocaleDateString() : 'N/A';
+
+    // Handle genres array or string
+    const genresText = Array.isArray(genres) ? genres.map(genre => genre.name).join(', ') : genres;
 
     return `
         <div class="item-card" data-id="${item.id}" data-type="${item.type}">
@@ -181,11 +186,28 @@ function createItemCard(item, type) {
                         </button>
                     </div>
                 </div>
-                <div class="item-meta">
-                    <span><i class="fa-solid fa-calendar"></i> ${formattedDate}</span>
-                    <span><i class="fa-solid fa-${type === 'movie' ? 'film' : 'tv'}"></i> ${type === 'movie' ? 'Movie' : 'TV Show'}</span>
+                <div class="item-info">
+                    <div class="info-row">
+                        <i class="fa-solid fa-star"></i>
+                        <span class="info-label">Rating:</span>
+                        <span class="info-value">${userScore}%</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fa-solid fa-clock"></i>
+                        <span class="info-label">Runtime:</span>
+                        <span class="info-value">${runtime}${runtime !== 'N/A' ? ' minutes' : ''}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fa-solid fa-calendar"></i>
+                        <span class="info-label">Released:</span>
+                        <span class="info-value">${formattedDate}</span>
+                    </div>
+                    <div class="info-row">
+                        <i class="fa-solid fa-film"></i>
+                        <span class="info-label">Genres:</span>
+                        <span class="info-value">${genresText}</span>
+                    </div>
                 </div>
-                <p class="plot">${synopsis}</p>
             </div>
         </div>
     `;

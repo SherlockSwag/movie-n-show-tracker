@@ -208,8 +208,8 @@ main {
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     transition: all 0.3s ease;
     cursor: pointer;
-    width: 100%; /* Ensure cards use full grid cell */
-    max-width: none; /* Remove any max-width */
+    height: 200px; /* Slightly taller to accommodate new layout */
+    align-items: stretch;
 }
 
 .item-card:hover {
@@ -219,9 +219,9 @@ main {
 }
 
 .item-card img {
-    width: 120px;
-    min-width: 120px;
-    height: 180px;
+    width: 140px; /* Slightly wider poster */
+    min-width: 140px;
+    height: 200px; /* Match card height */
     object-fit: cover;
     transition: transform 0.3s ease;
 }
@@ -234,8 +234,9 @@ main {
     display: flex;
     flex-direction: column;
     padding: 1.2rem;
-    gap: 0.8rem;
+    gap: 1rem;
     flex-grow: 1;
+    justify-content: flex-start; /* Align content to top */
 }
 
 .item-header {
@@ -243,14 +244,16 @@ main {
     justify-content: space-between;
     align-items: flex-start;
     gap: 1rem;
+    margin-bottom: 0.5rem;
 }
 
 .item-header h3 {
     margin: 0;
-    font-size: 1.2rem;
+    font-size: 1.3rem;
     font-weight: 600;
     line-height: 1.3;
     color: white;
+    flex-grow: 1;
 }
 
 .item-meta {
@@ -260,12 +263,49 @@ main {
     color: var(--secondary-text);
     font-size: 0.85rem;
     flex-wrap: wrap;
+    margin-top: auto;
 }
 
 .item-meta span {
     display: flex;
     align-items: center;
     gap: 0.3rem;
+    white-space: nowrap;
+}
+
+/* New item info layout */
+.item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    flex-grow: 1;
+    justify-content: flex-start;
+}
+
+.info-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.2;
+}
+
+.info-row i {
+    color: var(--primary-color);
+    width: 16px;
+    text-align: center;
+    font-size: 0.8rem;
+}
+
+.info-label {
+    color: var(--secondary-text);
+    font-weight: 500;
+    min-width: 70px;
+}
+
+.info-value {
+    color: var(--text-color);
+    flex-grow: 1;
 }
 
 .genres {
@@ -281,9 +321,10 @@ main {
     line-height: 1.5;
     margin: 0;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    flex-grow: 1;
 }
 
 /* Action Buttons */
@@ -430,6 +471,7 @@ main {
 .placeholder i {
     font-size: 4rem;
     margin-bottom: 1rem;
+    display: block;
     opacity: 0.7;
 }
 
@@ -440,8 +482,9 @@ main {
 }
 
 .placeholder p {
-    font-size: 1.1rem;
-    margin: 0.5rem 0;
+    font-size: 1.2rem;
+    margin: 0;
+    color: var(--text-color);
 }
 
 .loading-container {

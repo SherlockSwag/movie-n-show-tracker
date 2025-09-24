@@ -1,48 +1,32 @@
-// Auto-save to Firebase when data changes
-function setupAutoSave() {
-    const originalSetItem = localStorage.setItem;
-    
-    localStorage.setItem = function(key, value) {
-        originalSetItem.apply(this, arguments);
-        
-        if ((key === 'watchlist' || key === 'watchedlist') && window.authManager && window.authManager.user) {
-            console.log(`Auto-saving ${key} to Firebase`);
-            setTimeout(() => {
-                window.authManager.saveUserData().catch(error => {
-                    console.error('Auto-save failed:', error);
-                });
-            }, 500);
-        }
-    };
-}
-
-// Initialize auto-save
 document.addEventListener('DOMContentLoaded', function() {
-    setTimeout(() => {
-        setupAutoSave();
-        console.log('Auto-save initialized');
-        
-        // Wait for auth to initialize, then check authentication
-        checkAuthAndInitialize();
-    }, 1000);
+    initializeWatchlistPage();
 });
 
-function checkAuthAndInitialize() {
-    // Check if authManager is available and user is authenticated
-    if (window.authManager && window.authManager.user) {
-        console.log('User is authenticated, loading watchlist');
-        initializeWatchlistPage();
-    } else {
-        // Wait a bit more for auth to initialize
-        setTimeout(() => {
-            if (window.authManager && window.authManager.user) {
-                console.log('User authenticated after delay, loading watchlist');
-                initializeWatchlistPage();
+function initializeWatchlistPage() {
+    console.log('Initializing watchlist page...');
+    
+    const movieContainer = document.getElementById('movie-watchlist-container');
+    const tvContainer = document.getElementById('tv-watchlist-container');
+    
+    // Show loading state immediately
+    movieContainer.innerHTML = getLoadingHTML('Movies');
+    tvContainer.innerHTML = getLoadingHTML('TV Shows');
+    
+    // Use Firebase auth state observer instead of checking authManager directly
+    if (window.auth) {
+        // Listen for auth state changes
+        window.auth.onAuthStateChanged((user) => {
+            if (user) {
+                console.log('User authenticated via Firebase observer:', user.email);
+                loadWatchlistData();
             } else {
-                console.log('User not authenticated, showing auth message');
+                console.log('No user authenticated via Firebase observer');
                 showAuthRequiredMessage();
             }
-        }, 500);
+        });
+    } else {
+        console.error('Firebase auth not available');
+        showAuthRequiredMessage();
     }
 }
 
@@ -58,41 +42,16 @@ function showAuthRequiredMessage() {
             <button id="auth-required-signin" class="auth-btn" style="margin-top: 1rem;">Sign In</button>
         </div>`;
     
-    if (movieContainer) movieContainer.innerHTML = authMessage;
-    if (tvContainer) tvContainer.innerHTML = '';
+    movieContainer.innerHTML = authMessage;
+    tvContainer.innerHTML = '';
     
     // Add event listener to the sign in button
     const signInBtn = document.getElementById('auth-required-signin');
     if (signInBtn) {
-        signInBtn.addEventListener('click', showSignInModal);
-    }
-}
-
-function showSignInModal() {
-    const signinModal = document.getElementById('signin-modal');
-    if (signinModal) {
-        signinModal.style.display = 'block';
-    }
-}
-
-async function initializeWatchlistPage() {
-    const movieContainer = document.getElementById('movie-watchlist-container');
-    const tvContainer = document.getElementById('tv-watchlist-container');
-    
-    if (!movieContainer || !tvContainer) {
-        console.error('Watchlist containers not found');
-        return;
-    }
-    
-    // Show loading state for both containers simultaneously
-    movieContainer.innerHTML = getLoadingHTML('Movies');
-    tvContainer.innerHTML = getLoadingHTML('TV Shows');
-    
-    try {
-        await loadWatchlistData();
-    } catch (error) {
-        console.error('Error initializing watchlist:', error);
-        showErrorState();
+        signInBtn.addEventListener('click', function() {
+            const signinModal = document.getElementById('signin-modal');
+            if (signinModal) signinModal.style.display = 'block';
+        });
     }
 }
 
@@ -105,104 +64,83 @@ function getLoadingHTML(type) {
 }
 
 async function loadWatchlistData() {
+    console.log('Loading watchlist data...');
+    
     const { watchlist } = getStoredLists();
     
-    console.log('Watchlist items to load:', watchlist);
+    console.log(`Found ${watchlist.length} items in watchlist`);
     
-    if (!watchlist || watchlist.length === 0) {
+    if (watchlist.length === 0) {
         showEmptyState();
         return;
     }
     
-    // Batch process items by type for parallel loading
+    // Separate movies and TV shows
     const movieItems = watchlist.filter(item => item.type === 'movie');
     const tvItems = watchlist.filter(item => item.type === 'tv');
     
-    console.log(`Loading ${movieItems.length} movies and ${tvItems.length} TV shows`);
+    console.log(`Processing ${movieItems.length} movies and ${tvItems.length} TV shows`);
     
-    // Load both movie and TV data in parallel
-    const [movieResults, tvResults] = await Promise.all([
-        loadItemsDetails(movieItems, 'movie'),
-        loadItemsDetails(tvItems, 'tv')
-    ]);
-    
-    displayAllItems(movieResults, tvResults);
+    try {
+        // Load both in parallel
+        const [movieResults, tvResults] = await Promise.all([
+            loadItemsDetails(movieItems, 'movie'),
+            loadItemsDetails(tvItems, 'tv')
+        ]);
+        
+        displayAllItems(movieResults, tvResults);
+    } catch (error) {
+        console.error('Error loading watchlist items:', error);
+        showErrorState();
+    }
 }
 
 async function loadItemsDetails(items, type) {
-    if (!items || items.length === 0) return [];
+    if (items.length === 0) return [];
     
     const apiKey = '06251a03ea2bdbb4cf38b681d8263a92';
     const apiBaseUrl = 'https://api.themoviedb.org/3';
     
-    // Batch requests to avoid overwhelming the API
-    const batchSize = 10;
-    const batches = [];
-    
-    for (let i = 0; i < items.length; i += batchSize) {
-        const batch = items.slice(i, i + batchSize);
-        batches.push(batch);
-    }
-    
-    const allResults = [];
-    
-    for (const batch of batches) {
-        const batchPromises = batch.map(async (item) => {
-            try {
-                if (!item.id) {
-                    console.warn('Invalid item found:', item);
-                    return null;
-                }
-                
-                const url = `${apiBaseUrl}/${type}/${item.id}?api_key=${apiKey}`;
-                const response = await fetch(url);
-                
-                if (!response.ok) throw new Error(`API error: ${response.status}`);
-                
-                const details = await response.json();
-                return {
-                    ...item,
-                    title: type === 'movie' ? details.title : details.name,
-                    poster_path: details.poster_path,
-                    release_date: type === 'movie' ? details.release_date : details.first_air_date,
-                    overview: details.overview || 'No overview available.'
-                };
-            } catch (error) {
-                console.warn(`Failed to load ${type} ${item.id}:`, error);
-                return {
-                    ...item,
-                    title: `Unknown ${type === 'movie' ? 'Movie' : 'TV Show'}`,
-                    poster_path: null,
-                    release_date: null,
-                    overview: 'Details unavailable.'
-                };
-            }
-        });
-        
-        const batchResults = await Promise.allSettled(batchPromises);
-        const successfulResults = batchResults
-            .filter(result => result.status === 'fulfilled' && result.value !== null)
-            .map(result => result.value);
-        
-        allResults.push(...successfulResults);
-        
-        // Small delay between batches
-        if (batches.length > 1) {
-            await new Promise(resolve => setTimeout(resolve, 100));
+    // Load all items in parallel
+    const promises = items.map(async (item) => {
+        try {
+            const url = `${apiBaseUrl}/${type}/${item.id}?api_key=${apiKey}`;
+            const response = await fetch(url);
+            
+            if (!response.ok) throw new Error(`API error: ${response.status}`);
+            
+            const details = await response.json();
+            return {
+                ...item,
+                title: type === 'movie' ? details.title : details.name,
+                poster_path: details.poster_path,
+                release_date: type === 'movie' ? details.release_date : details.first_air_date,
+                overview: details.overview || 'No overview available.'
+            };
+        } catch (error) {
+            console.warn(`Failed to load ${type} ${item.id}:`, error);
+            return {
+                ...item,
+                title: `Unknown ${type === 'movie' ? 'Movie' : 'TV Show'}`,
+                poster_path: null,
+                release_date: null,
+                overview: 'Details unavailable.'
+            };
         }
-    }
+    });
     
-    return allResults;
+    const results = await Promise.allSettled(promises);
+    return results.filter(result => result.status === 'fulfilled').map(result => result.value);
 }
 
 function displayAllItems(movies, tvShows) {
     const movieContainer = document.getElementById('movie-watchlist-container');
     const tvContainer = document.getElementById('tv-watchlist-container');
     
-    if (!movieContainer || !tvContainer) return;
+    console.log(`Displaying ${movies.length} movies and ${tvShows.length} TV shows`);
     
     // Display movies
-    if (movies && movies.length > 0) {
+    if (movies.length > 0) {
         movieContainer.innerHTML = movies.map(item => createItemCard(item, 'movie')).join('');
         setupItemInteractions(movieContainer);
     } else {
@@ -210,7 +148,7 @@ function displayAllItems(movies, tvShows) {
     }
     
     // Display TV shows
-    if (tvShows && tvShows.length > 0) {
+    if (tvShows.length > 0) {
         tvContainer.innerHTML = tvShows.map(item => createItemCard(item, 'tv')).join('');
         setupItemInteractions(tvContainer);
     } else {
@@ -219,9 +157,7 @@ function displayAllItems(movies, tvShows) {
 }
 
 function createItemCard(item, type) {
-    if (!item) return '';
-    
-    const title = item.title || `Unknown ${type}`;
+    const title = item.title;
     const releaseDate = item.release_date;
     const year = releaseDate ? new Date(releaseDate).getFullYear() : 'N/A';
     const posterUrl = item.poster_path 
@@ -261,8 +197,6 @@ function setupItemInteractions(container) {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const card = e.target.closest('.item-card');
-            if (!card) return;
-            
             const itemId = parseInt(card.dataset.id);
             const itemType = card.dataset.type;
             
@@ -279,8 +213,6 @@ function setupItemInteractions(container) {
         button.addEventListener('click', (e) => {
             e.stopPropagation();
             const card = e.target.closest('.item-card');
-            if (!card) return;
-            
             const itemId = parseInt(card.dataset.id);
             const itemType = card.dataset.type;
             
@@ -307,8 +239,6 @@ function setupItemInteractions(container) {
 function checkEmptyState() {
     const movieContainer = document.getElementById('movie-watchlist-container');
     const tvContainer = document.getElementById('tv-watchlist-container');
-    
-    if (!movieContainer || !tvContainer) return;
     
     const movieItems = movieContainer.querySelectorAll('.item-card').length;
     const tvItems = tvContainer.querySelectorAll('.item-card').length;
@@ -337,8 +267,6 @@ function showEmptyState() {
     const movieContainer = document.getElementById('movie-watchlist-container');
     const tvContainer = document.getElementById('tv-watchlist-container');
     
-    if (!movieContainer || !tvContainer) return;
-    
     movieContainer.innerHTML = `
         <div class="placeholder">
             <i class="fa-solid fa-list-check"></i>
@@ -352,8 +280,6 @@ function showEmptyState() {
 function showErrorState() {
     const movieContainer = document.getElementById('movie-watchlist-container');
     const tvContainer = document.getElementById('tv-watchlist-container');
-    
-    if (!movieContainer || !tvContainer) return;
     
     const errorHTML = `
         <div class="placeholder">
@@ -372,7 +298,7 @@ function getStoredLists() {
     try {
         const watchlist = JSON.parse(localStorage.getItem('watchlist') || '[]');
         const watchedlist = JSON.parse(localStorage.getItem('watchedlist') || '[]');
-        return { watchlist: Array.isArray(watchlist) ? watchlist : [], watchedlist: Array.isArray(watchedlist) ? watchedlist : [] };
+        return { watchlist, watchedlist };
     } catch (error) {
         console.error('Error parsing stored lists:', error);
         return { watchlist: [], watchedlist: [] };

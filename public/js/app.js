@@ -1,3 +1,33 @@
+// Auto-save to Firebase when data changes - IMPROVED VERSION
+function setupAutoSave() {
+    const originalSetItem = localStorage.setItem;
+    
+    localStorage.setItem = function(key, value) {
+        originalSetItem.apply(this, arguments);
+        
+        // Check if it's one of our watchlist keys and user is authenticated
+        if ((key === 'watchlist' || key === 'watchedlist') && authManager.user) {
+            console.log(`Auto-saving ${key} to Firebase`);
+            // Add a small delay to avoid rapid consecutive saves
+            setTimeout(() => {
+                authManager.saveUserData().catch(error => {
+                    console.error('Auto-save failed:', error);
+                    // Don't show error to user for auto-save failures
+                });
+            }, 500);
+        }
+    };
+}
+
+// Initialize auto-save when DOM is loaded AND auth is ready
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait a bit for auth to initialize, then setup auto-save
+    setTimeout(() => {
+        setupAutoSave();
+        console.log('Auto-save initialized');
+    }, 1000);
+});
+
 document.addEventListener('DOMContentLoaded', () => {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('search-input');
@@ -103,7 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const { watchlist, watchedlist } = getStoredLists();
 
         items.forEach(item => {
-            const itemElement = document.createElement('div');
+            const itemElement = document.createElement('div'); // THIS LINE WAS MISSING
             itemElement.classList.add('item-card');
 
             const title = item.title || item.name || 'Unknown Title';
@@ -126,12 +156,12 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div class="item-header">
                         <h3>${title} ${year !== 'N/A' ? `(${year})` : ''}</h3>
                         <div class="action-buttons">
-                            <button class="action-btn add-btn ${isAdded ? 'added' : ''}" 
+                            <button class="action-btn add-btn ${isAdded ? 'added' : ''} ${isInWatched ? 'watched-indicator' : ''}" 
                                     data-id="${item.id}" 
                                     data-type="${currentFilter}" 
                                     ${isAdded ? 'disabled' : ''}
-                                    title="${isAdded ? 'Already in list' : 'Add to watchlist'}">
-                                <i class="fa-solid ${isAdded ? 'fa-check' : 'fa-plus'}"></i>
+                                    title="${isInWatched ? 'Already watched' : isInWatchlist ? 'In watchlist' : 'Add to watchlist'}">
+                                <i class="fa-solid ${isInWatched ? 'fa-eye' : isInWatchlist ? 'fa-check' : 'fa-plus'}"></i>
                             </button>
                         </div>
                     </div>
@@ -168,6 +198,13 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!exists) {
                 watchlist.push({ id: parseInt(id), type });
                 localStorage.setItem('watchlist', JSON.stringify(watchlist));
+                
+                // Manual trigger to ensure save
+                if (authManager.user) {
+                    authManager.saveUserData().catch(error => {
+                        console.error('Manual save failed:', error);
+                    });
+                }
                 
                 button.innerHTML = '<i class="fa-solid fa-check"></i>';
                 button.classList.add('added');

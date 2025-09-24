@@ -12,25 +12,102 @@
         <nav>
             <a href="index.html" class="logo"><i class="fa-solid fa-film"></i> FilmFile</a>
             <div class="nav-links">
-                <a href="index.html">Search</a>
-                <a href="watchlist.html">Watchlist</a>
-                <a href="watched.html" class="active">Watched</a>
+                <!-- Show these when user is authenticated -->
+                <div class="auth-only" style="display: none;">
+                    <a href="index.html">Search</a>
+                    <a href="watchlist.html">Watchlist</a>
+                    <a href="watched.html">Watched</a>
+                    <span id="user-display" style="margin-left: 1rem; color: var(--primary-color);"></span>
+                    <button id="sign-out-btn" class="auth-btn" style="margin-left: 1rem;">Sign Out</button>
+                </div>
+                
+                <!-- Show these when user is not authenticated -->
+                <div class="unauth-only">
+                    <button id="sign-in-btn" class="auth-btn">Sign In</button>
+                    <button id="sign-up-btn" class="auth-btn">Sign Up</button>
+                </div>
             </div>
         </nav>
     </header>
 
     <main>
         <div class="list-page-container">
-            <h2><i class="fa-solid fa-circle-check"></i> Watched Movies</h2>
-            <div id="movie-watched-container" class="list-container">
+            <div class="watched-header">
+                <h2><i class="fa-solid fa-circle-check"></i> Watched History</h2>
+                <div class="watched-controls">
+                    <div class="search-box">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <input type="text" id="watched-search" placeholder="Search watched items...">
+                    </div>
+                    <select id="sort-options">
+                        <option value="date-desc">Recently Watched</option>
+                        <option value="date-asc">Oldest First</option>
+                        <option value="title-asc">Title A-Z</option>
+                        <option value="title-desc">Title Z-A</option>
+                    </select>
+                    <select id="type-filter">
+                        <option value="all">All Types</option>
+                        <option value="movie">Movies Only</option>
+                        <option value="tv">TV Shows Only</option>
+                    </select>
                 </div>
-            <hr>
-            <h2><i class="fa-solid fa-circle-check"></i> Watched TV Shows</h2>
-            <div id="tv-watched-container" class="list-container">
-                </div>
+            </div>
+            
+            <div class="watched-stats">
+                <span id="total-count">0 items</span>
+                <span id="movie-count">0 movies</span>
+                <span id="tv-count">0 TV shows</span>
+            </div>
+            
+            <div id="watched-container" class="watched-grid">
+                <!-- Compact cards will be loaded here -->
+            </div>
+            
+            <div id="load-more-container" class="load-more-container">
+                <button id="load-more-btn" class="load-more-btn">Load More</button>
+            </div>
         </div>
     </main>
-    
+
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
     <script src="js/watched.js"></script>
+    <!-- Firebase -->
+    <script src="js/firebase-config.js"></script>
+    <script src="js/auth.js"></script>
+    <script src="js/auth-ui.js"></script>
+
+    <!-- Auth Modals -->
+    <div id="auth-modals">
+        <!-- Sign In Modal -->
+        <div id="signin-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Sign In</h2>
+                <form id="signin-form">
+                    <input type="email" id="signin-email" placeholder="Email" required>
+                    <input type="password" id="signin-password" placeholder="Password" required>
+                    <button type="submit">Sign In</button>
+                </form>
+                <div id="signin-message" class="auth-message"></div>
+            </div>
+        </div>
+
+        <!-- Sign Up Modal -->
+        <div id="signup-modal" class="modal" style="display: none;">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>Sign Up</h2>
+                <form id="signup-form">
+                    <input type="text" id="signup-name" placeholder="Display Name" required>
+                    <input type="email" id="signup-email" placeholder="Email" required>
+                    <input type="password" id="signup-password" placeholder="Password (min. 6 characters)" required>
+                    <button type="submit">Sign Up</button>
+                </form>
+                <div id="signup-message" class="auth-message"></div>
+            </div>
+        </div>
+    </div>
 </body>
 </html>
